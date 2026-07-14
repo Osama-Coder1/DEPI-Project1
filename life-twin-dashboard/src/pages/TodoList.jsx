@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "../components/layout/Header";
 import { useOutletContext } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../services/firebase";
 import {
   LuPlus,
   LuSearch,
@@ -10,7 +13,7 @@ import {
   LuArchive,
 } from "react-icons/lu";
 
-const initialTasks = [
+const defaultTasks = [
   {
     id: 1,
     title: "Finalize Q4 Financial Report",
@@ -48,20 +51,23 @@ const initialTasks = [
 const categories = ["Work", "Personal", "Study"];
 
 const urgencyStyles = {
-  urgent: "bg-accent-red/15 text-accent-red",
-  medium: "bg-accent-orange/15 text-accent-orange",
-  low: "bg-accent-green/15 text-accent-green",
+  urgent: "bg-red/15 text-red",
+  medium: "bg-orange/15 text-orange",
+  low: "bg-green/15 text-green",
 };
 
 const urgencyBorders = {
-  urgent: "border-l-accent-red",
-  medium: "border-l-accent-orange",
-  low: "border-l-accent-green",
+  urgent: "border-l-red",
+  medium: "border-l-orange",
+  low: "border-l-green",
 };
 
 export default function TodoList() {
   const { toggleSidebar } = useOutletContext();
-  const [tasks, setTasks] = useState(initialTasks);
+  const [uid, setUid] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [tasks, setTasks] = useState([]);
   const [activeTab, setActiveTab] = useState("pending");
   const [newTask, setNewTask] = useState({
     title: "",
@@ -70,23 +76,56 @@ export default function TodoList() {
     category: "",
   });
 
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUid(user.uid);
+        const ref = doc(db, "todos", user.uid);
+        const snap = await getDoc(ref);
+        if (snap.exists() && snap.data().tasks) {
+          setTasks(snap.data().tasks);
+        } else {
+          setTasks(defaultTasks);
+        }
+      }
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  const saveToFirestore = async (updated) => {
+    if (!uid) return;
+    setSaving(true);
+    try {
+      await setDoc(doc(db, "todos", uid), { tasks: updated }, { merge: true });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const toggleTask = (id) => {
-    setTasks(
-      tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+    const updated = tasks.map((t) =>
+      t.id === id ? { ...t, completed: !t.completed } : t
     );
+    setTasks(updated);
+    saveToFirestore(updated);
   };
 
   const addTask = (e) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
-    setTasks([
+    const updated = [
       ...tasks,
       {
         id: Date.now(),
         ...newTask,
         completed: false,
       },
-    ]);
+    ];
+    setTasks(updated);
+    saveToFirestore(updated);
     setNewTask({ title: "", dueDate: "", urgency: "low", category: "" });
   };
 
@@ -97,6 +136,14 @@ export default function TodoList() {
   });
 
   const pendingCount = tasks.filter((t) => !t.completed).length;
+
+  if (loading) {
+    return (
+      <div>
+        <Header title="To-Do List" subtitle="Loading..." onMenuToggle={toggleSidebar} />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -111,12 +158,11 @@ export default function TodoList() {
       />
 
       <div className="flex flex-col xl:flex-row gap-6">
-        {/* Left: New Task Form */}
         <div className="w-full xl:w-[360px] shrink-0">
           <div className="bg-bg-card border border-border rounded-xl p-5 mb-5">
             <div className="flex items-center gap-2 mb-5">
-              <LuPlus size={18} />
-              <span className="text-base font-semibold">New Task</span>
+              <LuPlus size={18} className="text-text-primary" />
+              <span className="text-base font-semibold text-text-primary">New Task</span>
             </div>
             <form onSubmit={addTask}>
               <div className="mb-4">
@@ -126,7 +172,7 @@ export default function TodoList() {
                 <input
                   type="text"
                   placeholder="What needs to be done?"
-                  className="w-full px-3.5 py-2.5 bg-bg-secondary border border-border rounded-lg text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-blue"
+                  className="w-full px-3.5 py-2.5 bg-bg-page border border-border rounded-lg text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-blue"
                   value={newTask.title}
                   onChange={(e) =>
                     setNewTask({ ...newTask, title: e.target.value })
@@ -140,7 +186,7 @@ export default function TodoList() {
                   </label>
                   <input
                     type="date"
-                    className="w-full px-3.5 py-2.5 bg-bg-secondary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent-blue"
+                    className="w-full px-3.5 py-2.5 bg-bg-page border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue"
                     value={newTask.dueDate}
                     onChange={(e) =>
                       setNewTask({ ...newTask, dueDate: e.target.value })
@@ -152,7 +198,7 @@ export default function TodoList() {
                     Urgency
                   </label>
                   <select
-                    className="w-full px-3.5 py-2.5 bg-bg-secondary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent-blue"
+                    className="w-full px-3.5 py-2.5 bg-bg-page border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue"
                     value={newTask.urgency}
                     onChange={(e) =>
                       setNewTask({ ...newTask, urgency: e.target.value })
@@ -175,8 +221,8 @@ export default function TodoList() {
                       type="button"
                       className={`px-3.5 py-1.5 rounded-lg text-xs font-medium border cursor-pointer transition-all ${
                         newTask.category === cat
-                          ? "bg-accent-blue text-white border-accent-blue"
-                          : "border-border text-text-secondary hover:bg-bg-card hover:text-text-primary"
+                          ? "bg-blue text-white border-blue"
+                          : "border-border text-text-secondary hover:bg-bg-page hover:text-text-primary"
                       }`}
                       onClick={() =>
                         setNewTask({
@@ -192,10 +238,13 @@ export default function TodoList() {
               </div>
               <button
                 type="submit"
-                className="w-full py-2.5 bg-gradient-to-r from-accent-blue to-blue-600 text-white rounded-lg text-sm font-semibold cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
+                className="w-full py-2.5 bg-blue text-white rounded-lg text-sm font-semibold cursor-pointer transition-all hover:bg-blue-dark hover:-translate-y-0.5"
               >
                 🚀 Create Task
               </button>
+              {saving && (
+                <p className="text-xs text-text-muted mt-2 text-center">Saving...</p>
+              )}
             </form>
           </div>
 
@@ -204,20 +253,19 @@ export default function TodoList() {
               FOCUS INSIGHT
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold">84%</span>
-              <span className="text-accent-green text-sm">+12%</span>
+              <span className="text-3xl font-bold text-text-primary">84%</span>
+              <span className="text-green text-sm">+12%</span>
             </div>
             <div className="flex justify-between text-xs text-text-muted mb-2">
               <span>Efficiency Score</span>
               <span>vs last week</span>
             </div>
             <div className="h-1.5 bg-border rounded-full overflow-hidden">
-              <div className="w-[84%] h-full bg-accent-green rounded-full" />
+              <div className="w-[84%] h-full bg-green rounded-full" />
             </div>
           </div>
         </div>
 
-        {/* Right: Task List */}
         <div className="flex-1">
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-1">
@@ -231,7 +279,7 @@ export default function TodoList() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all border-none ${
                     activeTab === tab.key
-                      ? "bg-accent-blue text-white"
+                      ? "bg-blue text-white"
                       : "bg-transparent text-text-muted hover:text-text-primary"
                   }`}
                 >
@@ -241,10 +289,10 @@ export default function TodoList() {
               ))}
             </div>
             <div className="flex gap-2">
-              <button className="w-9 h-9 rounded-lg border border-border bg-bg-card text-text-secondary flex items-center justify-center cursor-pointer hover:bg-bg-card-hover hover:text-text-primary">
+              <button className="w-9 h-9 rounded-lg border border-border bg-bg-card text-text-secondary flex items-center justify-center cursor-pointer hover:bg-bg-page hover:text-text-primary">
                 <LuFilter size={16} />
               </button>
-              <button className="w-9 h-9 rounded-lg border border-border bg-bg-card text-text-secondary flex items-center justify-center cursor-pointer hover:bg-bg-card-hover hover:text-text-primary">
+              <button className="w-9 h-9 rounded-lg border border-border bg-bg-card text-text-secondary flex items-center justify-center cursor-pointer hover:bg-bg-page hover:text-text-primary">
                 <LuSearch size={16} />
               </button>
             </div>
@@ -254,17 +302,17 @@ export default function TodoList() {
             {filteredTasks.map((task) => (
               <div
                 key={task.id}
-                className={`bg-bg-card border border-border rounded-xl px-5 py-4 flex items-center gap-4 border-l-[3px] ${urgencyBorders[task.urgency]} hover:border-accent-blue transition-colors`}
+                className={`bg-bg-card border border-border rounded-xl px-5 py-4 flex items-center gap-4 border-l-[3px] ${urgencyBorders[task.urgency]} hover:border-blue transition-colors`}
               >
                 <input
                   type="checkbox"
                   checked={task.completed}
                   onChange={() => toggleTask(task.id)}
-                  className="w-5 h-5 rounded cursor-pointer accent-accent-green shrink-0"
+                  className="w-5 h-5 rounded cursor-pointer accent-green shrink-0"
                 />
                 <div className="flex-1">
                   <div
-                    className={`text-[0.95rem] font-medium mb-1 ${
+                    className={`text-[0.95rem] font-medium mb-1 text-text-primary ${
                       task.completed
                         ? "line-through opacity-50"
                         : ""

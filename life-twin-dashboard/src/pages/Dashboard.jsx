@@ -1,216 +1,360 @@
+import { useState, useEffect } from "react";
+import { useOutletContext, useNavigate } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../services/firebase";
 import Header from "../components/layout/Header";
-import { useOutletContext } from "react-router-dom";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Doughnut } from "react-chartjs-2";
 import {
-  LuHourglass,
-  LuTrendingUp,
-  LuTriangleAlert,
-  LuQuote,
-  LuCreditCard,
+  LuCalendarDays,
+  LuRuler,
+  LuWeight,
   LuDumbbell,
-  LuTrophy,
+  LuWallet,
+  LuListTodo,
+  LuArrowRight,
+  LuUser,
+  LuClock,
 } from "react-icons/lu";
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+function calcBMI(weightKg, heightCm) {
+  if (!weightKg || !heightCm) return null;
+  const heightM = heightCm / 100;
+  return weightKg / (heightM * heightM);
+}
 
 export default function Dashboard() {
   const { toggleSidebar } = useOutletContext();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+  const [fitness, setFitness] = useState(null);
+  const [finance, setFinance] = useState(null);
+  const [todos, setTodos] = useState(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const [profileSnap, fitnessSnap, financeSnap, todosSnap] = await Promise.all([
+          getDoc(doc(db, "users", user.uid)),
+          getDoc(doc(db, "fitness", user.uid)),
+          getDoc(doc(db, "finance", user.uid)),
+          getDoc(doc(db, "todos", user.uid)),
+        ]);
+        if (profileSnap.exists()) setProfile(profileSnap.data());
+        if (fitnessSnap.exists()) setFitness(fitnessSnap.data());
+        if (financeSnap.exists()) setFinance(financeSnap.data());
+        if (todosSnap.exists()) setTodos(todosSnap.data());
+      }
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="px-6 lg:px-10 space-y-8">
+        <Header title="Dashboard" subtitle="Life Twin Dashboard" onMenuToggle={toggleSidebar} />
+        <p className="text-text-muted">Loading...</p>
+      </div>
+    );
+  }
+
+  const firstName = profile?.name ? profile.name.split(" ")[0] : "there";
+  const bmi = fitness ? calcBMI(Number(fitness.weight), Number(fitness.height)) : null;
+  const calories = fitness?.weight ? Math.round(Number(fitness.weight) * 29.3) : null;
+  const workoutsDone = fitness?.workoutPlan?.filter((w) => w.done).length || 0;
+  const workoutsTotal = fitness?.workoutPlan?.length || 0;
+
+  const totalIncome = (finance?.transactions || [])
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const totalExpense = (finance?.transactions || [])
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const balance = totalIncome - totalExpense;
+
+  const allTasks = todos?.tasks || [];
+  const pendingTasks = allTasks.filter((t) => !t.completed);
+  const completedTasks = allTasks.filter((t) => t.completed);
+  const tasksTotal = allTasks.length;
+
+  const financeChartData = {
+    labels: ["Income", "Expenses"],
+    datasets: [
+      {
+        data: [totalIncome, totalExpense],
+        backgroundColor: ["#22c55e", "#ef4444"],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const tasksChartData = {
+    labels: ["Completed", "Remaining"],
+    datasets: [
+      {
+        data: [completedTasks.length, pendingTasks.length],
+        backgroundColor: ["#22c55e", "#f97316"],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const fitnessChartData = {
+    labels: ["Done", "Remaining"],
+    datasets: [
+      {
+        data: [workoutsDone, Math.max(workoutsTotal - workoutsDone, 0)],
+        backgroundColor: ["#8b5cf6", "#e2e8f0"],
+        borderWidth: 0,
+      },
+    ],
+  };
 
   return (
     <div className="px-6 lg:px-10 space-y-8">
-      <Header
-        title="Dashboard"
-        subtitle="Command Center"
-        onMenuToggle={toggleSidebar}
-      />
+      <Header title="Dashboard" subtitle="Life Twin Dashboard" onMenuToggle={toggleSidebar} />
 
-      {/* Top Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {/* Life Timeline */}
-        <div className="bg-bg-card border border-border rounded-xl p-5 hover:border-accent-blue transition-colors">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-              Life Timeline
-            </span>
-            <LuHourglass className="text-text-muted" />
-          </div>
-          <div className="flex items-baseline gap-4">
-            <div>
-              <span className="text-3xl font-bold">28</span>
-              <span className="text-sm text-text-muted ml-1">Years</span>
+      {/* Welcome Banner */}
+      <div className="bg-bg-card border border-border rounded-xl p-6 flex flex-col md:flex-row md:items-center gap-6">
+        <div className="flex items-center gap-4">
+          {profile?.photo ? (
+            <img
+              src={profile.photo}
+              alt={profile.name}
+              className="w-20 h-20 rounded-full object-cover border border-border"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-bg-page border border-border flex items-center justify-center">
+              <LuUser size={32} className="text-text-muted" />
             </div>
-            <div>
-              <span className="text-2xl font-semibold">4</span>
-              <span className="text-sm text-text-muted ml-1">Months</span>
-            </div>
-          </div>
-          <div className="flex gap-4 mt-1 text-sm text-text-secondary">
-            <span>
-              <strong>12</strong> Days
-            </span>
-            <span>
-              <strong>08</strong> Hours
-            </span>
+          )}
+          <div>
+            <h2 className="text-2xl font-bold text-text-primary">
+              Welcome, {firstName}! 👋
+            </h2>
+            {profile?.work && (
+              <p className="text-sm text-text-secondary mt-1">{profile.work}</p>
+            )}
           </div>
         </div>
 
-        {/* Net Worth */}
-        <div className="bg-bg-card border border-border rounded-xl p-5 hover:border-accent-blue transition-colors">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-              Net Worth
-            </span>
-            <LuTrendingUp className="text-accent-green" />
-          </div>
-          <div className="text-3xl font-bold">$12,450.00</div>
-          <div className="text-accent-green text-sm mt-1">+2.4% vs last month</div>
-        </div>
-
-        {/* Critical Focus */}
-        <div className="bg-bg-card border border-border rounded-xl p-5 hover:border-accent-blue transition-colors">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-              Critical Focus
-            </span>
-            <LuTriangleAlert className="text-accent-orange" />
-          </div>
-          <div className="text-3xl font-bold">05</div>
-          <div className="mt-3">
-            <div className="h-1 bg-border rounded-full overflow-hidden">
-              <div className="w-[60%] h-full bg-accent-orange rounded-full" />
+        <div className="flex gap-3 md:ml-auto flex-wrap">
+          {profile?.age && (
+            <div className="flex items-center gap-2 bg-bg-page rounded-lg px-4 py-2.5">
+              <LuCalendarDays size={16} className="text-indigo-600" />
+              <div>
+                <div className="text-[0.65rem] text-text-muted">Age</div>
+                <div className="text-sm font-semibold text-text-primary">{profile.age} Years</div>
+              </div>
             </div>
-            <div className="text-right text-xs text-text-muted mt-1">
-              Tasks Remaining
+          )}
+          {profile?.height && (
+            <div className="flex items-center gap-2 bg-bg-page rounded-lg px-4 py-2.5">
+              <LuRuler size={16} className="text-blue" />
+              <div>
+                <div className="text-[0.65rem] text-text-muted">Height</div>
+                <div className="text-sm font-semibold text-text-primary">{profile.height} cm</div>
+              </div>
             </div>
-          </div>
+          )}
+          {profile?.weight && (
+            <div className="flex items-center gap-2 bg-bg-page rounded-lg px-4 py-2.5">
+              <LuWeight size={16} className="text-purple" />
+              <div>
+                <div className="text-[0.65rem] text-text-muted">Weight</div>
+                <div className="text-sm font-semibold text-text-primary">{profile.weight} kg</div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Middle Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        {/* Quote */}
-        <div className="xl:col-span-2 bg-bg-card border border-border rounded-xl p-8 flex flex-col justify-center hover:border-accent-blue transition-colors">
-          <LuQuote
-            size={48}
-            className="text-text-muted/30 mb-4"
-          />
-          <blockquote className="text-2xl lg:text-3xl font-bold italic leading-snug mb-4">
-            &quot;Precision is the foundation of freedom.&quot;
-          </blockquote>
-          <div className="text-sm text-text-muted">
-            —— MARCUS AURELIUS (ADAPTED)
+      {/* Fitness Card - Full Width */}
+      <div className="bg-bg-card border border-border rounded-xl p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-11 h-11 rounded-lg bg-purple/15 flex items-center justify-center">
+            <LuDumbbell size={22} className="text-purple" />
+          </div>
+          <span className="text-xl font-bold text-text-primary">Fitness Tracker</span>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-8 items-center">
+          <div className="w-full lg:w-56 h-56 shrink-0 relative flex items-center justify-center">
+            {workoutsTotal > 0 ? (
+              <>
+                <Doughnut
+                  data={fitnessChartData}
+                  options={{ plugins: { legend: { display: false } }, cutout: "70%" }}
+                />
+                <div className="absolute flex flex-col items-center">
+                  <span className="text-2xl font-bold text-text-primary">
+                    {workoutsDone}/{workoutsTotal}
+                  </span>
+                  <span className="text-xs text-text-muted">Workouts</span>
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-text-muted text-center">No workout data yet</div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-6 flex-1 w-full">
+            <div className="bg-bg-page rounded-xl p-5">
+              <div className="text-xs text-text-muted mb-1">Current Weight</div>
+              <div className="text-2xl font-bold text-text-primary">{fitness?.weight || "--"} kg</div>
+            </div>
+            <div className="bg-bg-page rounded-xl p-5">
+              <div className="text-xs text-text-muted mb-1">BMI</div>
+              <div className="text-2xl font-bold text-text-primary">{bmi ? bmi.toFixed(1) : "--"}</div>
+            </div>
+            <div className="bg-bg-page rounded-xl p-5">
+              <div className="text-xs text-text-muted mb-1">Calorie Needs</div>
+              <div className="text-2xl font-bold text-text-primary">{calories || "--"} kcal</div>
+            </div>
+            <div className="bg-bg-page rounded-xl p-5">
+              <div className="text-xs text-text-muted mb-1">Workouts Done</div>
+              <div className="text-2xl font-bold text-text-primary">{workoutsDone}/{workoutsTotal}</div>
+            </div>
           </div>
         </div>
 
-        {/* Habit Consistency */}
-        <div className="bg-bg-card border border-border rounded-xl p-5 hover:border-accent-blue transition-colors">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-base font-semibold">Habit Consistency</span>
-            <span className="text-text-muted cursor-pointer text-lg">···</span>
-          </div>
-          <div className="text-center py-5">
-            <div className="w-[140px] h-[140px] rounded-full border-[8px] border-border border-t-accent-orange border-r-accent-green border-b-accent-cyan mx-auto flex items-center justify-center flex-col">
-              <span className="text-2xl font-bold">74%</span>
-              <span className="text-xs text-text-muted">AVG.</span>
-            </div>
-            <div className="flex justify-center gap-6 mt-5">
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-2 h-2 rounded-full bg-accent-cyan" />
-                Focus
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-2 h-2 rounded-full bg-accent-green" />
-                Health
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-2 h-2 rounded-full bg-accent-orange" />
-                Study
-              </div>
-            </div>
-          </div>
-        </div>
+        <button
+          onClick={() => navigate("/fitness")}
+          className="mt-6 w-full py-3.5 bg-purple text-white rounded-lg text-base font-semibold cursor-pointer flex items-center justify-center gap-2 hover:opacity-90"
+        >
+          Open Fitness Tracker <LuArrowRight size={18} />
+        </button>
       </div>
 
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Recent Logs */}
-        <div className="bg-bg-card border border-border rounded-xl p-5 hover:border-accent-blue transition-colors">
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-base font-semibold">Recent Logs</span>
-            <span className="text-sm text-accent-blue cursor-pointer">
-              View All
-            </span>
+      {/* Finance Card - Full Width */}
+      <div className="bg-bg-card border border-border rounded-xl p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-11 h-11 rounded-lg bg-green/15 flex items-center justify-center">
+            <LuWallet size={22} className="text-green" />
           </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-accent-blue/15 flex items-center justify-center text-accent-blue shrink-0">
-                <LuCreditCard size={16} />
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-medium">
-                  Subscription payment: Cloud Services
+          <span className="text-xl font-bold text-text-primary">Finance Tracker</span>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-8 items-center">
+          <div className="w-full lg:w-56 h-56 shrink-0 relative flex items-center justify-center">
+            {totalIncome > 0 || totalExpense > 0 ? (
+              <>
+                <Doughnut
+                  data={financeChartData}
+                  options={{ plugins: { legend: { display: false } }, cutout: "70%" }}
+                />
+                <div className="absolute flex flex-col items-center">
+                  <span className="text-xl font-bold text-text-primary">${balance.toFixed(0)}</span>
+                  <span className="text-xs text-text-muted">Balance</span>
                 </div>
-                <div className="text-xs text-text-muted">
-                  2 hours ago • <span className="text-accent-red">-$12.99</span>
-                </div>
-              </div>
+              </>
+            ) : (
+              <div className="text-sm text-text-muted text-center">No finance data yet</div>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 flex-1 w-full">
+            <div className="bg-bg-page rounded-xl p-5">
+              <div className="text-xs text-text-muted mb-1">Balance</div>
+              <div className="text-2xl font-bold text-text-primary">${balance.toFixed(2)}</div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-accent-green/15 flex items-center justify-center text-accent-green shrink-0">
-                <LuDumbbell size={16} />
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-medium">
-                  Workout Completed: Upper Body A
-                </div>
-                <div className="text-xs text-text-muted">
-                  5 hours ago •{" "}
-                  <span className="text-accent-green">+450 XP</span>
-                </div>
-              </div>
+            <div className="bg-bg-page rounded-xl p-5">
+              <div className="text-xs text-text-muted mb-1">Total Income</div>
+              <div className="text-2xl font-bold text-green">${totalIncome.toFixed(2)}</div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-accent-purple/15 flex items-center justify-center text-accent-purple shrink-0">
-                <LuTrophy size={16} />
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-medium">
-                  Milestone: Read 50 pages
-                </div>
-                <div className="text-xs text-text-muted">
-                  Yesterday • Productivity Streak
-                </div>
-              </div>
+            <div className="bg-bg-page rounded-xl p-5">
+              <div className="text-xs text-text-muted mb-1">Total Expenses</div>
+              <div className="text-2xl font-bold text-red">${totalExpense.toFixed(2)}</div>
             </div>
           </div>
         </div>
 
-        {/* Current Environment */}
-        <div className="bg-bg-card border border-border rounded-xl p-5 hover:border-accent-blue transition-colors">
-          <div className="mb-4">
-            <span className="text-xs text-text-muted">Current Environment</span>
+        <button
+          onClick={() => navigate("/finance")}
+          className="mt-6 w-full py-3.5 bg-green text-white rounded-lg text-base font-semibold cursor-pointer flex items-center justify-center gap-2 hover:opacity-90"
+        >
+          Open Finance Tracker <LuArrowRight size={18} />
+        </button>
+      </div>
+
+      {/* To-Do Card - Full Width */}
+      <div className="bg-bg-card border border-border rounded-xl p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-11 h-11 rounded-lg bg-blue/15 flex items-center justify-center">
+            <LuListTodo size={22} className="text-blue" />
           </div>
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="text-xl font-bold">San Francisco, CA</div>
-              <div className="text-sm text-text-muted">
-                Cloudy • 12:42 PM
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold">68°F</div>
-            </div>
+          <span className="text-xl font-bold text-text-primary">To-Do List</span>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="w-full lg:w-56 h-56 shrink-0 relative flex items-center justify-center mx-auto">
+            {tasksTotal > 0 ? (
+              <>
+                <Doughnut
+                  data={tasksChartData}
+                  options={{ plugins: { legend: { display: false } }, cutout: "70%" }}
+                />
+                <div className="absolute flex flex-col items-center">
+                  <span className="text-2xl font-bold text-text-primary">
+                    {completedTasks.length}/{tasksTotal}
+                  </span>
+                  <span className="text-xs text-text-muted">Completed</span>
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-text-muted text-center">No tasks yet</div>
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-3 mt-5">
-            <div className="bg-bg-secondary rounded-lg p-3">
-              <div className="text-xs text-text-muted mb-1">AIR QUALITY</div>
-              <div className="text-accent-green font-semibold">
-                Optimal (24)
+
+          <div className="flex-1 space-y-5">
+            {pendingTasks.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-text-muted mb-2">
+                  Pending ({pendingTasks.length})
+                </div>
+                <div className="flex flex-col gap-2">
+                  {pendingTasks.map((t) => (
+                    <div key={t.id} className="flex items-center gap-3 bg-bg-page rounded-lg px-4 py-3">
+                      <LuClock size={14} className="text-orange shrink-0" />
+                      <span className="text-sm text-text-primary flex-1">{t.title}</span>
+                      <span className="text-xs text-text-muted">{t.dueDate}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="bg-bg-secondary rounded-lg p-3">
-              <div className="text-xs text-text-muted mb-1">FOCUS SCORE</div>
-              <div className="text-accent-cyan font-semibold">High (88)</div>
-            </div>
+            )}
+
+            {completedTasks.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-text-muted mb-2">
+                  Completed ({completedTasks.length})
+                </div>
+                <div className="flex flex-col gap-2">
+                  {completedTasks.map((t) => (
+                    <div key={t.id} className="flex items-center gap-3 bg-bg-page rounded-lg px-4 py-3">
+                      <div className="w-3.5 h-3.5 rounded-full bg-green shrink-0" />
+                      <span className="text-sm text-text-muted line-through flex-1">{t.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tasksTotal === 0 && (
+              <p className="text-sm text-text-muted">No tasks added yet.</p>
+            )}
           </div>
         </div>
+
+        <button
+          onClick={() => navigate("/todo")}
+          className="mt-6 w-full py-3.5 bg-blue text-white rounded-lg text-base font-semibold cursor-pointer flex items-center justify-center gap-2 hover:opacity-90"
+        >
+          Open To-Do List <LuArrowRight size={18} />
+        </button>
       </div>
     </div>
   );
