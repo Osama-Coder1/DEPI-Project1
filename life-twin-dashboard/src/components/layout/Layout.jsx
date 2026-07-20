@@ -7,7 +7,7 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen">
+    <div className="app-bg min-h-screen">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -15,10 +15,10 @@ export default function Layout() {
         onToggleCollapse={() => setCollapsed((prev) => !prev)}
       />
       <main
-        className="min-h-screen transition-[padding] duration-300 ease-in-out"
+        className="min-h-screen transition-[padding] duration-300 ease-in-out relative z-10"
         style={{ paddingLeft: collapsed ? "72px" : "260px" }}
       >
-        <div className="p-6 lg:p-8">
+        <div className="app-content p-6 lg:p-8 animate-fade-in-up">
           <Outlet
             context={{ toggleSidebar: () => setSidebarOpen((prev) => !prev) }}
           />

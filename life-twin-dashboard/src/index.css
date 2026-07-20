@@ -21,6 +21,19 @@
   --color-cyan: #06b6d4;
 
   --font-family-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  --radius-card: 1.25rem;
+  --radius-card-sm: 1rem;
+
+  --shadow-soft: 0 4px 20px -4px rgba(30, 41, 59, 0.08), 0 2px 8px -2px rgba(30, 41, 59, 0.04);
+  --shadow-soft-lg: 0 14px 34px -8px rgba(30, 41, 59, 0.16), 0 4px 12px -4px rgba(30, 41, 59, 0.08);
+
+  --color-glass: rgba(255, 255, 255, 0.68);
+  --color-glass-border: rgba(255, 255, 255, 0.55);
+
+  --color-blob-blue: #c9dbfc;
+  --color-blob-purple: #e6d7fc;
+  --color-blob-cyan: #c8f2f4;
 }
 
 * {
@@ -55,4 +68,58 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
+}
+
+/* ===== Modern Dashboard UI additions ===== */
+
+.glass-card {
+  background: var(--color-glass);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-soft-lg);
+}
+
+.app-bg {
+  position: relative;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(199, 217, 252, 0.35), transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(230, 215, 252, 0.3), transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(200, 242, 244, 0.25), transparent 50%),
+    linear-gradient(180deg, #f7f9fd 0%, #eef1f8 100%);
+  background-attachment: fixed;
+}
+
+.app-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(30, 41, 59, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 41, 59, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 0;
+}
+
+.app-content {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease both;
 }

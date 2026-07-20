@@ -120,21 +120,21 @@ export default function Dashboard() {
       <Header title="Dashboard" subtitle="Life Twin Dashboard" onMenuToggle={toggleSidebar} />
 
       {/* Welcome Banner */}
-      <div className="bg-bg-card border border-border rounded-xl p-6 flex flex-col md:flex-row md:items-center gap-6">
+      <div className="glass-card p-6 flex flex-col md:flex-row md:items-center gap-6">
         <div className="flex items-center gap-4">
           {profile?.photo ? (
             <img
               src={profile.photo}
               alt={profile.name}
-              className="w-20 h-20 rounded-full object-cover border border-border"
+              className="w-20 h-20 rounded-full object-cover ring-4 ring-white shadow-lg"
             />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-bg-page border border-border flex items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-bg-page border border-border flex items-center justify-center shadow-inner">
               <LuUser size={32} className="text-text-muted" />
             </div>
           )}
           <div>
-            <h2 className="text-2xl font-bold text-text-primary">
+            <h2 className="text-2xl font-bold text-text-primary tracking-tight">
               Welcome, {firstName}! 👋
             </h2>
             {profile?.work && (
@@ -145,8 +145,8 @@ export default function Dashboard() {
 
         <div className="flex gap-3 md:ml-auto flex-wrap">
           {profile?.age && (
-            <div className="flex items-center gap-2 bg-bg-page rounded-lg px-4 py-2.5">
-              <LuCalendarDays size={16} className="text-indigo-600" />
+            <div className="flex items-center gap-2 bg-bg-page/70 rounded-xl px-4 py-2.5 border border-border/60">
+              <LuCalendarDays size={16} className="text-blue" />
               <div>
                 <div className="text-[0.65rem] text-text-muted">Age</div>
                 <div className="text-sm font-semibold text-text-primary">{profile.age} Years</div>
@@ -154,7 +154,7 @@ export default function Dashboard() {
             </div>
           )}
           {profile?.height && (
-            <div className="flex items-center gap-2 bg-bg-page rounded-lg px-4 py-2.5">
+            <div className="flex items-center gap-2 bg-bg-page/70 rounded-xl px-4 py-2.5 border border-border/60">
               <LuRuler size={16} className="text-blue" />
               <div>
                 <div className="text-[0.65rem] text-text-muted">Height</div>
@@ -163,7 +163,7 @@ export default function Dashboard() {
             </div>
           )}
           {profile?.weight && (
-            <div className="flex items-center gap-2 bg-bg-page rounded-lg px-4 py-2.5">
+            <div className="flex items-center gap-2 bg-bg-page/70 rounded-xl px-4 py-2.5 border border-border/60">
               <LuWeight size={16} className="text-purple" />
               <div>
                 <div className="text-[0.65rem] text-text-muted">Weight</div>
@@ -175,12 +175,12 @@ export default function Dashboard() {
       </div>
 
       {/* Fitness Card - Full Width */}
-      <div className="bg-bg-card border border-border rounded-xl p-8">
+      <div className="glass-card p-8">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-11 h-11 rounded-lg bg-purple/15 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-xl bg-purple/15 flex items-center justify-center">
             <LuDumbbell size={22} className="text-purple" />
           </div>
-          <span className="text-xl font-bold text-text-primary">Fitness Tracker</span>
+          <span className="text-xl font-bold text-text-primary tracking-tight">Fitness Tracker</span>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-center">
@@ -203,19 +203,19 @@ export default function Dashboard() {
             )}
           </div>
           <div className="grid grid-cols-2 gap-6 flex-1 w-full">
-            <div className="bg-bg-page rounded-xl p-5">
+            <div className="bg-bg-page/70 border border-border/60 rounded-2xl p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="text-xs text-text-muted mb-1">Current Weight</div>
               <div className="text-2xl font-bold text-text-primary">{fitness?.weight || "--"} kg</div>
             </div>
-            <div className="bg-bg-page rounded-xl p-5">
+            <div className="bg-bg-page/70 border border-border/60 rounded-2xl p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="text-xs text-text-muted mb-1">BMI</div>
               <div className="text-2xl font-bold text-text-primary">{bmi ? bmi.toFixed(1) : "--"}</div>
             </div>
-            <div className="bg-bg-page rounded-xl p-5">
+            <div className="bg-bg-page/70 border border-border/60 rounded-2xl p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="text-xs text-text-muted mb-1">Calorie Needs</div>
               <div className="text-2xl font-bold text-text-primary">{calories || "--"} kcal</div>
             </div>
-            <div className="bg-bg-page rounded-xl p-5">
+            <div className="bg-bg-page/70 border border-border/60 rounded-2xl p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="text-xs text-text-muted mb-1">Workouts Done</div>
               <div className="text-2xl font-bold text-text-primary">{workoutsDone}/{workoutsTotal}</div>
             </div>
@@ -224,19 +224,19 @@ export default function Dashboard() {
 
         <button
           onClick={() => navigate("/fitness")}
-          className="mt-6 w-full py-3.5 bg-purple text-white rounded-lg text-base font-semibold cursor-pointer flex items-center justify-center gap-2 hover:opacity-90"
+          className="mt-6 w-full py-3.5 bg-gradient-to-r from-purple to-purple/80 text-white rounded-2xl text-base font-semibold cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-lg hover:shadow-purple/30 hover:-translate-y-0.5"
         >
           Open Fitness Tracker <LuArrowRight size={18} />
         </button>
       </div>
 
       {/* Finance Card - Full Width */}
-      <div className="bg-bg-card border border-border rounded-xl p-8">
+      <div className="glass-card p-8">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-11 h-11 rounded-lg bg-green/15 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-xl bg-green/15 flex items-center justify-center">
             <LuWallet size={22} className="text-green" />
           </div>
-          <span className="text-xl font-bold text-text-primary">Finance Tracker</span>
+          <span className="text-xl font-bold text-text-primary tracking-tight">Finance Tracker</span>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-center">
@@ -257,15 +257,15 @@ export default function Dashboard() {
             )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 flex-1 w-full">
-            <div className="bg-bg-page rounded-xl p-5">
+            <div className="bg-bg-page/70 border border-border/60 rounded-2xl p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="text-xs text-text-muted mb-1">Balance</div>
-              <div className="text-2xl font-bold text-text-primary">${balance.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-blue">${balance.toFixed(2)}</div>
             </div>
-            <div className="bg-bg-page rounded-xl p-5">
+            <div className="bg-bg-page/70 border border-border/60 rounded-2xl p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="text-xs text-text-muted mb-1">Total Income</div>
               <div className="text-2xl font-bold text-green">${totalIncome.toFixed(2)}</div>
             </div>
-            <div className="bg-bg-page rounded-xl p-5">
+            <div className="bg-bg-page/70 border border-border/60 rounded-2xl p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="text-xs text-text-muted mb-1">Total Expenses</div>
               <div className="text-2xl font-bold text-red">${totalExpense.toFixed(2)}</div>
             </div>
@@ -274,19 +274,19 @@ export default function Dashboard() {
 
         <button
           onClick={() => navigate("/finance")}
-          className="mt-6 w-full py-3.5 bg-green text-white rounded-lg text-base font-semibold cursor-pointer flex items-center justify-center gap-2 hover:opacity-90"
+          className="mt-6 w-full py-3.5 bg-gradient-to-r from-green to-green-dark text-white rounded-2xl text-base font-semibold cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-lg hover:shadow-green/30 hover:-translate-y-0.5"
         >
           Open Finance Tracker <LuArrowRight size={18} />
         </button>
       </div>
 
       {/* To-Do Card - Full Width */}
-      <div className="bg-bg-card border border-border rounded-xl p-8">
+      <div className="glass-card p-8">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-11 h-11 rounded-lg bg-blue/15 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-xl bg-blue/15 flex items-center justify-center">
             <LuListTodo size={22} className="text-blue" />
           </div>
-          <span className="text-xl font-bold text-text-primary">To-Do List</span>
+          <span className="text-xl font-bold text-text-primary tracking-tight">To-Do List</span>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
@@ -317,7 +317,10 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col gap-2">
                   {pendingTasks.map((t) => (
-                    <div key={t.id} className="flex items-center gap-3 bg-bg-page rounded-lg px-4 py-3">
+                    <div
+                      key={t.id}
+                      className="flex items-center gap-3 bg-bg-page/70 border border-border/60 rounded-xl px-4 py-3 transition-all duration-200 hover:bg-bg-page hover:shadow-sm"
+                    >
                       <LuClock size={14} className="text-orange shrink-0" />
                       <span className="text-sm text-text-primary flex-1">{t.title}</span>
                       <span className="text-xs text-text-muted">{t.dueDate}</span>
@@ -334,7 +337,10 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-col gap-2">
                   {completedTasks.map((t) => (
-                    <div key={t.id} className="flex items-center gap-3 bg-bg-page rounded-lg px-4 py-3">
+                    <div
+                      key={t.id}
+                      className="flex items-center gap-3 bg-bg-page/70 border border-border/60 rounded-xl px-4 py-3 transition-all duration-200 hover:bg-bg-page hover:shadow-sm"
+                    >
                       <div className="w-3.5 h-3.5 rounded-full bg-green shrink-0" />
                       <span className="text-sm text-text-muted line-through flex-1">{t.title}</span>
                     </div>
@@ -351,7 +357,7 @@ export default function Dashboard() {
 
         <button
           onClick={() => navigate("/todo")}
-          className="mt-6 w-full py-3.5 bg-blue text-white rounded-lg text-base font-semibold cursor-pointer flex items-center justify-center gap-2 hover:opacity-90"
+          className="mt-6 w-full py-3.5 bg-gradient-to-r from-blue to-blue-dark text-white rounded-2xl text-base font-semibold cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-lg hover:shadow-blue/30 hover:-translate-y-0.5"
         >
           Open To-Do List <LuArrowRight size={18} />
         </button>
